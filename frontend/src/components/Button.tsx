@@ -4,6 +4,7 @@ interface ButtonProps {
   fullWidth?: boolean;
   variant?: "primary" | "secondary" | "outline";
   onClick?: () => void;
+  disabled?: boolean;
 }
 
 const Button = ({ 
@@ -11,7 +12,8 @@ const Button = ({
   type = "button", 
   fullWidth = false, 
   variant = "primary", 
-  onClick 
+  onClick,
+  disabled = false
 }: ButtonProps) => {
   const baseClasses = "px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors";
   
@@ -22,12 +24,14 @@ const Button = ({
   };
   
   const widthClass = fullWidth ? "w-full" : "";
+  const disabledClass = disabled ? "opacity-60 cursor-not-allowed" : "";
   
   return (
     <button
       type={type}
-      className={`${baseClasses} ${variantClasses[variant]} ${widthClass}`}
+      className={`${baseClasses} ${variantClasses[variant]} ${widthClass} ${disabledClass}`}
       onClick={onClick}
+      disabled={disabled}
     >
       {children}
     </button>

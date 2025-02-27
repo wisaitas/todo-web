@@ -1,66 +1,19 @@
 import { useEffect, useState } from 'react';
+import { locationApi } from '../api/locationApi';
+import { District, Province, SubDistrict } from '../api/types';
 import Select from './Select';
 import TextArea from './TextArea';
 
-// Mock data for demonstration - in a real app, you would fetch this from an API
-const provinces = [
-  { value: "bangkok", label: "Bangkok" },
-  { value: "chiang_mai", label: "Chiang Mai" },
-  { value: "phuket", label: "Phuket" }
-];
-
-const districtsByProvince: Record<string, Array<{ value: string, label: string }>> = {
-  bangkok: [
-    { value: "bangkok_pathumwan", label: "Pathumwan" },
-    { value: "bangkok_bangrak", label: "Bang Rak" }
-  ],
-  chiang_mai: [
-    { value: "chiang_mai_muang", label: "Muang Chiang Mai" },
-    { value: "chiang_mai_mae_rim", label: "Mae Rim" }
-  ],
-  phuket: [
-    { value: "phuket_muang", label: "Muang Phuket" },
-    { value: "phuket_kathu", label: "Kathu" }
-  ]
-};
-
-const subdistrictsByDistrict: Record<string, Array<{ value: string, label: string }>> = {
-  bangkok_pathumwan: [
-    { value: "pathumwan_1", label: "Pathumwan Subdistrict 1" },
-    { value: "pathumwan_2", label: "Pathumwan Subdistrict 2" }
-  ],
-  bangkok_bangrak: [
-    { value: "bangrak_1", label: "Bang Rak Subdistrict 1" },
-    { value: "bangrak_2", label: "Bang Rak Subdistrict 2" }
-  ],
-  chiang_mai_muang: [
-    { value: "muang_cm_1", label: "Muang CM Subdistrict 1" },
-    { value: "muang_cm_2", label: "Muang CM Subdistrict 2" }
-  ],
-  chiang_mai_mae_rim: [
-    { value: "mae_rim_1", label: "Mae Rim Subdistrict 1" },
-    { value: "mae_rim_2", label: "Mae Rim Subdistrict 2" }
-  ],
-  phuket_muang: [
-    { value: "muang_pk_1", label: "Muang Phuket Subdistrict 1" },
-    { value: "muang_pk_2", label: "Muang Phuket Subdistrict 2" }
-  ],
-  phuket_kathu: [
-    { value: "kathu_1", label: "Kathu Subdistrict 1" },
-    { value: "kathu_2", label: "Kathu Subdistrict 2" }
-  ]
-};
-
 export interface AddressData {
-  province: string;
-  district: string;
-  subdistrict: string;
-  addressDetails: string;
+  province_id: number;
+  district_id: number;
+  sub_district_id: number;
+  address: string;
 }
 
 interface AddressFormProps {
   address: AddressData;
-  onChange: (field: keyof AddressData, value: string) => void;
+  onChange: (field: keyof AddressData, value: number | string) => void;
   index: number;
   isSecondary?: boolean;
   onRemove?: () => void;
@@ -73,37 +26,91 @@ const AddressForm = ({
   isSecondary = false, 
   onRemove 
 }: AddressFormProps) => {
-  const [availableDistricts, setAvailableDistricts] = useState<Array<{ value: string, label: string }>>([]);
-  const [availableSubdistricts, setAvailableSubdistricts] = useState<Array<{ value: string, label: string }>>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [subDistricts, setSubDistricts] = useState<SubDistrict[]>([]);
+  const [loading, setLoading] = useState({
+    provinces: false,
+    districts: false,
+    subDistricts: false
+  });
+  const [error, setError] = useState<string | null>(null);
 
-  // Update available districts when province changes
+  // Fetch provinces on component mount
   useEffect(() => {
-    if (address.province) {
-      setAvailableDistricts(districtsByProvince[address.province] || []);
-      
-      // Reset district and subdistrict if province changes and current district is not valid
-      if (address.district && !districtsByProvince[address.province]?.some(d => d.value === address.district)) {
-        onChange('district', '');
-        onChange('subdistrict', '');
+    const fetchProvinces = async () => {
+      try {
+        setLoading(prev => ({ ...prev, provinces: true }));
+        const data = await locationApi.getProvinces();
+        setProvinces(data);
+        setError(null);
+      } catch (err) {
+        setError('Failed to load provinces');
+        console.error(err);
+      } finally {
+        setLoading(prev => ({ ...prev, provinces: false }));
       }
-    } else {
-      setAvailableDistricts([]);
-    }
-  }, [address.province]);
+    };
 
-  // Update available subdistricts when district changes
+    fetchProvinces();
+  }, []);
+
+  // Fetch districts when province changes
   useEffect(() => {
-    if (address.district) {
-      setAvailableSubdistricts(subdistrictsByDistrict[address.district] || []);
-      
-      // Reset subdistrict if district changes and current subdistrict is not valid
-      if (address.subdistrict && !subdistrictsByDistrict[address.district]?.some(s => s.value === address.subdistrict)) {
-        onChange('subdistrict', '');
-      }
+    if (address.province_id) {
+      const fetchDistricts = async () => {
+        try {
+          setLoading(prev => ({ ...prev, districts: true }));
+          const data = await locationApi.getDistrictsByProvince(address.province_id);
+          setDistricts(data);
+          setError(null);
+          
+          // Reset district and subdistrict if province changes
+          if (address.district_id && !data.some(d => d.id === address.district_id)) {
+            onChange('district_id', 0);
+            onChange('sub_district_id', 0);
+          }
+        } catch (err) {
+          setError('Failed to load districts');
+          console.error(err);
+        } finally {
+          setLoading(prev => ({ ...prev, districts: false }));
+        }
+      };
+
+      fetchDistricts();
     } else {
-      setAvailableSubdistricts([]);
+      setDistricts([]);
     }
-  }, [address.district]);
+  }, [address.province_id]);
+
+  // Fetch subdistricts when district changes
+  useEffect(() => {
+    if (address.district_id) {
+      const fetchSubDistricts = async () => {
+        try {
+          setLoading(prev => ({ ...prev, subDistricts: true }));
+          const data = await locationApi.getSubDistrictsByDistrict(address.district_id);
+          setSubDistricts(data);
+          setError(null);
+          
+          // Reset subdistrict if district changes
+          if (address.sub_district_id && !data.some(s => s.id === address.sub_district_id)) {
+            onChange('sub_district_id', 0);
+          }
+        } catch (err) {
+          setError('Failed to load sub-districts');
+          console.error(err);
+        } finally {
+          setLoading(prev => ({ ...prev, subDistricts: false }));
+        }
+      };
+
+      fetchSubDistricts();
+    } else {
+      setSubDistricts([]);
+    }
+  }, [address.district_id]);
 
   return (
     <div className="space-y-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
@@ -122,45 +129,52 @@ const AddressForm = ({
         )}
       </div>
       
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Select
           id={`province-${index}`}
           label="Province"
-          options={provinces}
-          value={address.province}
-          onChange={(e) => onChange('province', e.target.value)}
-          placeholder="Select Province"
+          options={provinces.map(p => ({ value: p.id.toString(), label: p.name_en }))}
+          value={address.province_id ? address.province_id.toString() : ''}
+          onChange={(e) => onChange('province_id', parseInt(e.target.value))}
+          placeholder={loading.provinces ? "Loading provinces..." : "Select Province"}
+          disabled={loading.provinces}
         />
         
         <Select
           id={`district-${index}`}
           label="District"
-          options={availableDistricts}
-          value={address.district}
-          onChange={(e) => onChange('district', e.target.value)}
-          placeholder="Select District"
-          disabled={!address.province}
+          options={districts.map(d => ({ value: d.id.toString(), label: d.name_en }))}
+          value={address.district_id ? address.district_id.toString() : ''}
+          onChange={(e) => onChange('district_id', parseInt(e.target.value))}
+          placeholder={loading.districts ? "Loading districts..." : "Select District"}
+          disabled={!address.province_id || loading.districts}
         />
         
         <Select
           id={`subdistrict-${index}`}
           label="Subdistrict"
-          options={availableSubdistricts}
-          value={address.subdistrict}
-          onChange={(e) => onChange('subdistrict', e.target.value)}
-          placeholder="Select Subdistrict"
-          disabled={!address.district}
+          options={subDistricts.map(s => ({ value: s.id.toString(), label: s.name_en }))}
+          value={address.sub_district_id ? address.sub_district_id.toString() : ''}
+          onChange={(e) => onChange('sub_district_id', parseInt(e.target.value))}
+          placeholder={loading.subDistricts ? "Loading sub-districts..." : "Select Subdistrict"}
+          disabled={!address.district_id || loading.subDistricts}
         />
       </div>
       
       <div>
         <TextArea
-          id={`addressDetails-${index}`}
+          id={`address-${index}`}
           label="Address Details"
           rows={3}
           placeholder="Enter your address details"
-          value={address.addressDetails}
-          onChange={(e) => onChange('addressDetails', e.target.value)}
+          value={address.address || ''}
+          onChange={(e) => onChange('address', e.target.value)}
           maxLength={200}
         />
       </div>
