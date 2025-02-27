@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"github.com/wisaitas/todo-web/internal/dtos/request"
+	"github.com/wisaitas/todo-web/internal/dtos/queries"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -9,8 +9,9 @@ import (
 
 type BaseRepository[T any] interface {
 	WithTx(tx *gorm.DB) BaseRepository[T]
-	GetAll(items *[]T, pagination *request.PaginationQuery, relations ...string) error
+	GetAll(items *[]T, pagination *queries.PaginationQuery, relations ...string) error
 	GetBy(field string, value string, item *T) error
+	GetAllBy(field string, value string, items *[]T) error
 	GetById(id uuid.UUID, item *T) error
 	Create(item *T) error
 	CreateMany(items *[]T) error
@@ -37,7 +38,7 @@ func (r *baseRepository[T]) WithTx(tx *gorm.DB) BaseRepository[T] {
 	}
 }
 
-func (r *baseRepository[T]) GetAll(items *[]T, pagination *request.PaginationQuery, relations ...string) error {
+func (r *baseRepository[T]) GetAll(items *[]T, pagination *queries.PaginationQuery, relations ...string) error {
 	query := r.db
 
 	if pagination.Page != nil && pagination.PageSize != nil {
@@ -58,7 +59,19 @@ func (r *baseRepository[T]) GetAll(items *[]T, pagination *request.PaginationQue
 }
 
 func (r *baseRepository[T]) GetBy(field string, value string, item *T) error {
+	if value == "" {
+		return r.db.First(item).Error
+	}
+
 	return r.db.Where(field+" = ?", value).First(item).Error
+}
+
+func (r *baseRepository[T]) GetAllBy(field string, value string, items *[]T) error {
+	if value == "" {
+		return r.db.Find(items).Error
+	}
+
+	return r.db.Where(field+" = ?", value).Find(items).Error
 }
 
 func (r *baseRepository[T]) GetById(id uuid.UUID, item *T) error {

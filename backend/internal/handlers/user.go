@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/wisaitas/todo-web/internal/dtos/queries"
 	"github.com/wisaitas/todo-web/internal/dtos/request"
 	"github.com/wisaitas/todo-web/internal/dtos/response"
 	"github.com/wisaitas/todo-web/internal/services"
@@ -21,14 +22,14 @@ func NewUserHandler(
 }
 
 func (r *UserHandler) GetUsers(c *fiber.Ctx) error {
-	querys, ok := c.Locals("querys").(request.PaginationQuery)
+	query, ok := c.Locals("query").(queries.PaginationQuery)
 	if !ok {
 		return c.Status(fiber.StatusBadRequest).JSON(response.ErrorResponse{
-			Message: "failed to get querys",
+			Message: "failed to get query",
 		})
 	}
 
-	users, statusCode, err := r.userService.GetUsers(querys)
+	resp, statusCode, err := r.userService.GetUsers(query)
 	if err != nil {
 		return c.Status(statusCode).JSON(response.ErrorResponse{
 			Message: err.Error(),
@@ -37,7 +38,7 @@ func (r *UserHandler) GetUsers(c *fiber.Ctx) error {
 
 	return c.Status(statusCode).JSON(response.SuccessResponse{
 		Message: "users fetched successfully",
-		Data:    users,
+		Data:    resp,
 	})
 }
 
@@ -49,7 +50,7 @@ func (r *UserHandler) CreateUser(c *fiber.Ctx) error {
 		})
 	}
 
-	user, statusCode, err := r.userService.CreateUser(req)
+	resp, statusCode, err := r.userService.CreateUser(req)
 	if err != nil {
 		return c.Status(statusCode).JSON(response.ErrorResponse{
 			Message: err.Error(),
@@ -58,6 +59,6 @@ func (r *UserHandler) CreateUser(c *fiber.Ctx) error {
 
 	return c.Status(statusCode).JSON(response.SuccessResponse{
 		Message: "user created successfully",
-		Data:    user,
+		Data:    resp,
 	})
 }

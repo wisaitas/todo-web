@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/wisaitas/todo-web/internal/configs"
-	"github.com/wisaitas/todo-web/internal/dtos/request"
+	"github.com/wisaitas/todo-web/internal/dtos/queries"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -83,16 +83,27 @@ func validateImageFiles(files []*multipart.FileHeader) error {
 	return nil
 }
 
-func validateCommonPaginationQuery(c *fiber.Ctx, req *request.PaginationQuery) error {
+func validateCommonPaginationQuery[T any](c *fiber.Ctx, req *T) error {
 	if err := c.QueryParser(req); err != nil {
 		return err
 	}
 
-	if err := validatePageAndPageSize(req.Page, req.PageSize); err != nil {
-		return err
+	val := reflect.ValueOf(req).Elem()
+	paginationField := val.FieldByName("PaginationQuery")
+
+	if paginationField.IsValid() {
+		pagination := paginationField.Addr().Interface().(*queries.PaginationQuery)
+
+		if err := validatePageAndPageSize(pagination.Page, pagination.PageSize); err != nil {
+			return err
+		}
+
+		if err := validateSortAndOrder(pagination.Sort, pagination.Order); err != nil {
+			return err
+		}
 	}
 
-	if err := validateSortAndOrder(req.Sort, req.Order); err != nil {
+	if err := validator.New().Struct(req); err != nil {
 		return err
 	}
 

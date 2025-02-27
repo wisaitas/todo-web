@@ -3,6 +3,7 @@ package validates
 import (
 	"fmt"
 
+	"github.com/wisaitas/todo-web/internal/dtos/queries"
 	"github.com/wisaitas/todo-web/internal/dtos/request"
 	"github.com/wisaitas/todo-web/internal/dtos/response"
 
@@ -30,15 +31,15 @@ func (r *UserValidate) ValidateCreateUserRequest(c *fiber.Ctx) error {
 }
 
 func (r *UserValidate) ValidateGetUsersRequest(c *fiber.Ctx) error {
-	querys := request.PaginationQuery{}
+	query := queries.PaginationQuery{}
 
-	if err := validateCommonPaginationQuery(c, &querys); err != nil {
+	if err := validateCommonPaginationQuery(c, &query); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(response.ErrorResponse{
 			Message: fmt.Sprintf("failed to validate request: %s", err.Error()),
 		})
 	}
 
-	c.Locals("querys", querys)
+	c.Locals("query", query)
 	return c.Next()
 
 }

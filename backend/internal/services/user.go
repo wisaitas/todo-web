@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wisaitas/todo-web/internal/dtos/queries"
 	"github.com/wisaitas/todo-web/internal/dtos/request"
 	"github.com/wisaitas/todo-web/internal/dtos/response"
 	"github.com/wisaitas/todo-web/internal/models"
@@ -21,7 +22,7 @@ import (
 )
 
 type UserService interface {
-	GetUsers(querys request.PaginationQuery) (resp []response.GetUsersResponse, statusCode int, err error)
+	GetUsers(queries queries.PaginationQuery) (resp []response.GetUsersResponse, statusCode int, err error)
 	CreateUser(req request.CreateUserRequest) (resp response.CreateUserResponse, statusCode int, err error)
 }
 
@@ -40,10 +41,10 @@ func NewUserService(
 	}
 }
 
-func (r *userService) GetUsers(querys request.PaginationQuery) (resp []response.GetUsersResponse, statusCode int, err error) {
+func (r *userService) GetUsers(query queries.PaginationQuery) (resp []response.GetUsersResponse, statusCode int, err error) {
 	users := []models.User{}
 
-	cacheKey := fmt.Sprintf("get_users:%v:%v:%v:%v", querys.Page, querys.PageSize, querys.Sort, querys.Order)
+	cacheKey := fmt.Sprintf("get_users:%v:%v:%v:%v", query.Page, query.PageSize, query.Sort, query.Order)
 
 	cache, err := r.redis.Get(context.Background(), cacheKey)
 	if err != nil && err != redis.Nil {
@@ -58,7 +59,7 @@ func (r *userService) GetUsers(querys request.PaginationQuery) (resp []response.
 		return resp, http.StatusOK, nil
 	}
 
-	if err := r.userRepository.GetAll(&users, &querys); err != nil {
+	if err := r.userRepository.GetAll(&users, &query); err != nil {
 		return []response.GetUsersResponse{}, http.StatusInternalServerError, err
 	}
 

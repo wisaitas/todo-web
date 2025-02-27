@@ -8,19 +8,11 @@ import (
 	"syscall"
 
 	"github.com/wisaitas/todo-web/internal/configs"
+	middlewareConfigs "github.com/wisaitas/todo-web/internal/middlewares/configs"
 	"github.com/wisaitas/todo-web/internal/utils"
 
-	"github.com/redis/go-redis/v9"
-
-	"github.com/wisaitas/todo-web/internal/handlers"
-	"github.com/wisaitas/todo-web/internal/middlewares"
-	middlewareConfigs "github.com/wisaitas/todo-web/internal/middlewares/configs"
-	"github.com/wisaitas/todo-web/internal/repositories"
-	"github.com/wisaitas/todo-web/internal/routes"
-	"github.com/wisaitas/todo-web/internal/services"
-	"github.com/wisaitas/todo-web/internal/validates"
-
 	"github.com/gofiber/fiber/v2"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -40,40 +32,23 @@ func InitializeApp() *App {
 	db := configs.ConnectDB()
 	redis := configs.ConnectRedis()
 
-	// Initialize utils
 	redisClient := utils.NewRedisClient(redis)
 
-	// Initialize repositories
-	userRepository := repositories.NewUserRepository(db)
+	repositories := initializeRepositories(db)
+	services := initializeServices(repositories, redisClient)
+	handlers := initializeHandlers(services)
+	validates := initializeValidates()
+	middlewares := initializeMiddlewares(redis)
 
-	// Initialize services
-	userService := services.NewUserService(userRepository, redisClient)
-	authService := services.NewAuthService(userRepository, redisClient)
-
-	// Initialize handlers
-	userHandler := handlers.NewUserHandler(userService)
-	authHandler := handlers.NewAuthHandler(authService)
-
-	// Initialize validates
-	userValidate := validates.NewUserValidate()
-	authValidate := validates.NewAuthValidate()
-
-	// Initialize middlewares
-	authMiddleware := middlewares.NewAuthMiddleware(redis)
-	userMiddleware := middlewares.NewUserMiddleware()
-
-	// Initialize routes
 	apiRoutes := app.Group("/api/v1")
-	userRoutes := routes.NewUserRoutes(apiRoutes, userHandler, userValidate, authMiddleware, userMiddleware)
-	authRoutes := routes.NewAuthRoutes(apiRoutes, authHandler, authValidate, authMiddleware)
+	appRoutes := initializeRoutes(apiRoutes, handlers, validates, middlewares)
 
 	return &App{
 		App:   app,
 		DB:    db,
 		Redis: redis,
 		routes: func() {
-			userRoutes.UserRoutes()
-			authRoutes.AuthRoutes()
+			appRoutes.SetupRoutes()
 		},
 	}
 }
@@ -119,5 +94,6 @@ func (r *App) SetupMiddlewares() {
 		middlewareConfigs.CORS(),
 		middlewareConfigs.Healthz(),
 		middlewareConfigs.Logger(),
+		middlewareConfigs.Recovery(),
 	)
 }
