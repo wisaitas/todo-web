@@ -2,6 +2,8 @@ FROM golang:1.23.2-alpine
 
 WORKDIR /app
 
+RUN apk add --no-cache curl
+
 COPY backend/go.mod backend/go.sum ./
 
 RUN go mod download && go mod verify

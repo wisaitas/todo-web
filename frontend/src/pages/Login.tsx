@@ -38,7 +38,7 @@ const Login = () => {
             setCookie('refreshToken', response.refresh_token, 7);
             
             // Redirect to home or dashboard
-            navigate('/dashboard');
+            navigate('/home');
             
         } catch (err) {
             if (err instanceof Error) {
