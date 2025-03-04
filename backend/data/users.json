@@ -1,0 +1,10 @@
+[
+    {
+        "email": "jiwwisaitad01@gmail.com", 
+        "password": "root1234",
+        "username": "admin",
+        "role": {
+            "name": "ADMIN"
+        }
+    }
+]

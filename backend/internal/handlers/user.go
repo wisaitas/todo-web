@@ -4,6 +4,7 @@ import (
 	"github.com/wisaitas/todo-web/internal/dtos/queries"
 	"github.com/wisaitas/todo-web/internal/dtos/request"
 	"github.com/wisaitas/todo-web/internal/dtos/response"
+	"github.com/wisaitas/todo-web/internal/models"
 	"github.com/wisaitas/todo-web/internal/services"
 
 	"github.com/gofiber/fiber/v2"
@@ -29,7 +30,14 @@ func (r *UserHandler) GetUsers(c *fiber.Ctx) error {
 		})
 	}
 
-	resp, statusCode, err := r.userService.GetUsers(query)
+	userContext, ok := c.Locals("userContext").(models.UserContext)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.ErrorResponse{
+			Message: "user context not found",
+		})
+	}
+
+	resp, statusCode, err := r.userService.GetUsers(userContext, query)
 	if err != nil {
 		return c.Status(statusCode).JSON(response.ErrorResponse{
 			Message: err.Error(),

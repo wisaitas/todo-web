@@ -38,7 +38,7 @@ func InitializeApp() *App {
 	services := initializeServices(repositories, redisClient)
 	handlers := initializeHandlers(services)
 	validates := initializeValidates()
-	middlewares := initializeMiddlewares(redis)
+	middlewares := initializeMiddlewares(redisClient)
 
 	apiRoutes := app.Group("/api/v1")
 	appRoutes := initializeRoutes(apiRoutes, handlers, validates, middlewares)

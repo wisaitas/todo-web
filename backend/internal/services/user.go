@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wisaitas/todo-web/internal/constants"
 	"github.com/wisaitas/todo-web/internal/dtos/queries"
 	"github.com/wisaitas/todo-web/internal/dtos/request"
 	"github.com/wisaitas/todo-web/internal/dtos/response"
@@ -22,31 +23,31 @@ import (
 )
 
 type UserService interface {
-	GetUsers(queries queries.PaginationQuery) (resp []response.GetUsersResponse, statusCode int, err error)
+	GetUsers(userContext models.UserContext, query queries.PaginationQuery) (resp []response.GetUsersResponse, statusCode int, err error)
 	CreateUser(req request.CreateUserRequest) (resp response.CreateUserResponse, statusCode int, err error)
 }
 
 type userService struct {
 	userRepository repositories.UserRepository
-	redis          utils.RedisClient
+	redisUtil      utils.RedisClient
 }
 
 func NewUserService(
 	userRepository repositories.UserRepository,
-	redis utils.RedisClient,
+	redisUtil utils.RedisClient,
 ) UserService {
 	return &userService{
 		userRepository: userRepository,
-		redis:          redis,
+		redisUtil:      redisUtil,
 	}
 }
 
-func (r *userService) GetUsers(query queries.PaginationQuery) (resp []response.GetUsersResponse, statusCode int, err error) {
+func (r *userService) GetUsers(userContext models.UserContext, query queries.PaginationQuery) (resp []response.GetUsersResponse, statusCode int, err error) {
 	users := []models.User{}
 
 	cacheKey := fmt.Sprintf("get_users:%v:%v:%v:%v", query.Page, query.PageSize, query.Sort, query.Order)
 
-	cache, err := r.redis.Get(context.Background(), cacheKey)
+	cache, err := r.redisUtil.Get(context.Background(), cacheKey)
 	if err != nil && err != redis.Nil {
 		return []response.GetUsersResponse{}, http.StatusInternalServerError, err
 	}
@@ -59,8 +60,14 @@ func (r *userService) GetUsers(query queries.PaginationQuery) (resp []response.G
 		return resp, http.StatusOK, nil
 	}
 
-	if err := r.userRepository.GetAll(&users, &query); err != nil {
-		return []response.GetUsersResponse{}, http.StatusInternalServerError, err
+	if userContext.Role.Name == constants.ROLE.ADMIN {
+		if err := r.userRepository.GetAll(&users, &query, nil, "Role"); err != nil {
+			return []response.GetUsersResponse{}, http.StatusInternalServerError, err
+		}
+	} else {
+		if err := r.userRepository.GetAll(&users, &query, map[string]interface{}{"role_id": userContext.Role.ID}, "Role"); err != nil {
+			return []response.GetUsersResponse{}, http.StatusInternalServerError, err
+		}
 	}
 
 	for _, user := range users {
@@ -73,7 +80,7 @@ func (r *userService) GetUsers(query queries.PaginationQuery) (resp []response.G
 		return []response.GetUsersResponse{}, http.StatusInternalServerError, err
 	}
 
-	if err := r.redis.Set(context.Background(), cacheKey, respJson, 10*time.Second); err != nil {
+	if err := r.redisUtil.Set(context.Background(), cacheKey, respJson, 10*time.Second); err != nil {
 		return []response.GetUsersResponse{}, http.StatusInternalServerError, err
 	}
 

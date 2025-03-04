@@ -49,7 +49,7 @@ func (s *subDistrictService) GetSubDistricts(query queries.SubDistrictQuery) (re
 		return resp, http.StatusOK, nil
 	}
 
-	if err := s.subDistrictRepository.GetAllBy("district_id", query.DistrictID, &subDistricts); err != nil {
+	if err := s.subDistrictRepository.GetAll(&subDistricts, &query.PaginationQuery, map[string]interface{}{"district_id": query.DistrictID}); err != nil {
 		return []response.GetSubDistrictsResponse{}, http.StatusInternalServerError, err
 	}
 

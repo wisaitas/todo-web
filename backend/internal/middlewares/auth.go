@@ -1,67 +1,37 @@
 package middlewares
 
 import (
-	"context"
-	"fmt"
-	"strings"
-
-	"github.com/wisaitas/todo-web/internal/configs"
-	"github.com/wisaitas/todo-web/internal/dtos/response"
-	"github.com/wisaitas/todo-web/internal/models"
-
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
+	"github.com/wisaitas/todo-web/internal/dtos/response"
+	"github.com/wisaitas/todo-web/internal/utils"
 )
 
 type AuthMiddleware struct {
-	redis *redis.Client
+	redisUtil utils.RedisClient
 }
 
-func NewAuthMiddleware(redis *redis.Client) *AuthMiddleware {
+func NewAuthMiddleware(redisUtil utils.RedisClient) *AuthMiddleware {
 	return &AuthMiddleware{
-		redis: redis,
+		redisUtil: redisUtil,
 	}
 }
 
-func (r *AuthMiddleware) AuthToken(c *fiber.Ctx) error {
-	authHeader := c.Get("Authorization")
-	if !strings.HasPrefix(authHeader, "Bearer ") {
-		return c.Status(fiber.StatusUnauthorized).JSON(response.ErrorResponse{
-			Message: "invalid token type",
-		})
-	}
-
-	token := strings.TrimPrefix(authHeader, "Bearer ")
-
-	var userContext models.UserContext
-	_, err := jwt.ParseWithClaims(token, &userContext, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
-		return []byte(configs.ENV.JWT_SECRET), nil
-	})
-	if err != nil {
+func (r *AuthMiddleware) Logout(c *fiber.Ctx) error {
+	if err := authToken(c, r.redisUtil); err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(response.ErrorResponse{
 			Message: err.Error(),
 		})
 	}
 
-	_, err = r.redis.Get(context.Background(), fmt.Sprintf("access_token:%s", uuid.MustParse(userContext.ID))).Result()
-	if err != nil {
-		if err == redis.Nil {
-			return c.Status(fiber.StatusUnauthorized).JSON(response.ErrorResponse{
-				Message: "token not found",
-			})
-		}
-
-		return c.Status(fiber.StatusUnauthorized).JSON(response.ErrorResponse{
-			Message: err.Error(),
-		})
-	}
-
-	c.Locals("userContext", userContext)
 	return c.Next()
+}
 
+func (r *AuthMiddleware) RefreshToken(c *fiber.Ctx) error {
+	if err := authToken(c, r.redisUtil); err != nil {
+		return c.Status(fiber.StatusUnauthorized).JSON(response.ErrorResponse{
+			Message: err.Error(),
+		})
+	}
+
+	return c.Next()
 }

@@ -1,14 +1,14 @@
 package initial
 
 import (
-	"github.com/redis/go-redis/v9"
 	"github.com/wisaitas/todo-web/internal/middlewares"
+	"github.com/wisaitas/todo-web/internal/utils"
 )
 
-func initializeMiddlewares(redis *redis.Client) *Middlewares {
+func initializeMiddlewares(redisUtil utils.RedisClient) *Middlewares {
 	return &Middlewares{
-		AuthMiddleware: *middlewares.NewAuthMiddleware(redis),
-		UserMiddleware: *middlewares.NewUserMiddleware(),
+		AuthMiddleware: *middlewares.NewAuthMiddleware(redisUtil),
+		UserMiddleware: *middlewares.NewUserMiddleware(redisUtil),
 	}
 }
 

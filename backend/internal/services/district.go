@@ -50,7 +50,7 @@ func (r *districtService) GetDistricts(query queries.DistrictQuery) (resp []resp
 		}
 	}
 
-	if err := r.districtRepository.GetAllBy("province_id", query.ProvinceID, &districts); err != nil {
+	if err := r.districtRepository.GetAll(&districts, &query.PaginationQuery, map[string]interface{}{"province_id": query.ProvinceID}); err != nil {
 		return []response.GetDistrictsResponse{}, http.StatusInternalServerError, err
 	}
 

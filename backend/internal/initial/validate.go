@@ -11,6 +11,7 @@ func initializeValidates() *Validates {
 		ProvinceValidate:    *validates.NewProvinceValidate(),
 		DistrictValidate:    *validates.NewDistrictValidate(),
 		SubDistrictValidate: *validates.NewSubDistrictValidate(),
+		TodoValidate:        *validates.NewTodoValidate(),
 	}
 }
 
@@ -20,4 +21,5 @@ type Validates struct {
 	ProvinceValidate    validates.ProvinceValidate
 	DistrictValidate    validates.DistrictValidate
 	SubDistrictValidate validates.SubDistrictValidate
+	TodoValidate        validates.TodoValidate
 }

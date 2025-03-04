@@ -20,6 +20,8 @@ type Environment struct {
 	DISTRICT_FILE_PATH     string `env:"DISTRICT_FILE_PATH" envDefault:"./data/districts.json"`
 	SUB_DISTRICT_FILE_PATH string `env:"SUB_DISTRICT_FILE_PATH" envDefault:"./data/sub_districts.json"`
 	PROVINCE_FILE_PATH     string `env:"PROVINCE_FILE_PATH" envDefault:"./data/provinces.json"`
+	USERS_FILE_PATH        string `env:"USERS_FILE_PATH" envDefault:"./data/users.json"`
+	ROLES_FILE_PATH        string `env:"ROLES_FILE_PATH" envDefault:"./data/roles.json"`
 }
 
 var ENV Environment

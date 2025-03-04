@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wisaitas/todo-web/internal/constants"
 	"github.com/wisaitas/todo-web/internal/dtos/request"
 	"github.com/wisaitas/todo-web/internal/dtos/response"
 	"github.com/wisaitas/todo-web/internal/models"
@@ -27,22 +28,25 @@ type AuthService interface {
 
 type authService struct {
 	userRepository repositories.UserRepository
+	roleRepository repositories.RoleRepository
 	redis          utils.RedisClient
 }
 
 func NewAuthService(
 	userRepository repositories.UserRepository,
+	roleRepository repositories.RoleRepository,
 	redis utils.RedisClient,
 ) AuthService {
 	return &authService{
 		userRepository: userRepository,
+		roleRepository: roleRepository,
 		redis:          redis,
 	}
 }
 
 func (r *authService) Login(req request.LoginRequest) (resp response.LoginResponse, statusCode int, err error) {
 	user := models.User{}
-	if err := r.userRepository.GetBy("username", req.Username, &user); err != nil {
+	if err := r.userRepository.GetBy(map[string]interface{}{"username": req.Username}, &user, "Role"); err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return resp, http.StatusNotFound, err
 		}
@@ -62,6 +66,7 @@ func (r *authService) Login(req request.LoginRequest) (resp response.LoginRespon
 		"id":       user.ID,
 		"username": user.Username,
 		"email":    user.Email,
+		"role":     models.RoleContext{ID: user.Role.ID, Name: user.Role.Name},
 	}, accessTokenExp.Unix())
 	if err != nil {
 		return resp, http.StatusInternalServerError, err
@@ -71,6 +76,7 @@ func (r *authService) Login(req request.LoginRequest) (resp response.LoginRespon
 		"id":       user.ID,
 		"username": user.Username,
 		"email":    user.Email,
+		"role":     models.RoleContext{ID: user.Role.ID, Name: user.Role.Name},
 	}, refreshTokenExp.Unix())
 	if err != nil {
 		return resp, http.StatusInternalServerError, err
@@ -95,7 +101,14 @@ func (r *authService) Register(req request.RegisterRequest) (resp response.Regis
 		return resp, http.StatusInternalServerError, err
 	}
 
+	role := models.Role{}
+	if err := r.roleRepository.GetBy(map[string]interface{}{"name": constants.ROLE.USER}, &role); err != nil {
+		return resp, http.StatusBadRequest, err
+	}
+
 	user.Password = string(hashedPassword)
+	user.RoleID = role.ID
+	user.Role = &role
 
 	if err = r.userRepository.Create(&user); err != nil {
 		if strings.Contains(err.Error(), "unique constraint") {
@@ -122,7 +135,7 @@ func (r *authService) Logout(userContext models.UserContext) (statusCode int, er
 
 func (r *authService) RefreshToken(userContext models.UserContext) (resp response.LoginResponse, statusCode int, err error) {
 	user := models.User{}
-	if err := r.userRepository.GetBy("username", userContext.Username, &user); err != nil {
+	if err := r.userRepository.GetBy(map[string]interface{}{"username": userContext.Username}, &user); err != nil {
 		return resp, http.StatusNotFound, err
 	}
 

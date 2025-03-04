@@ -11,10 +11,12 @@ type ProvinceRepository interface {
 
 type provinceRepository struct {
 	BaseRepository[models.Province]
+	db *gorm.DB
 }
 
-func NewProvinceRepository(db *gorm.DB) ProvinceRepository {
+func NewProvinceRepository(db *gorm.DB, baseRepository BaseRepository[models.Province]) ProvinceRepository {
 	return &provinceRepository{
-		BaseRepository: NewBaseRepository[models.Province](db),
+		BaseRepository: baseRepository,
+		db:             db,
 	}
 }

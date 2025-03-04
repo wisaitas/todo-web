@@ -31,13 +31,9 @@ const Login = () => {
             
             const response = await authApi.login({ username, password });
             
-            // Store tokens in cookies instead of localStorage
-            // Set access token to expire in 1 day
             setCookie('accessToken', response.access_token, 1);
-            // Set refresh token to expire in 7 days
             setCookie('refreshToken', response.refresh_token, 7);
             
-            // Redirect to home or dashboard
             navigate('/home');
             
         } catch (err) {

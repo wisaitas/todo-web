@@ -33,7 +33,7 @@ func NewAuthRoutes(
 func (r *AuthRoutes) AuthRoutes() {
 	auth := r.app.Group("/auth")
 	auth.Post("/login", r.authValidate.ValidateLoginRequest, r.authHandler.Login)
-	auth.Post("/logout", r.authMiddleware.AuthToken, r.authHandler.Logout)
+	auth.Post("/logout", r.authMiddleware.Logout, r.authHandler.Logout)
 	auth.Post("/register", r.authValidate.ValidateRegisterRequest, r.authHandler.Register)
-	auth.Post("/refresh-token", r.authMiddleware.AuthToken, r.authHandler.RefreshToken)
+	auth.Post("/refresh-token", r.authMiddleware.RefreshToken, r.authHandler.RefreshToken)
 }

@@ -6,11 +6,10 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/wisaitas/todo-web/internal/configs"
-	"github.com/wisaitas/todo-web/internal/dtos/queries"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/wisaitas/todo-web/internal/configs"
+	"github.com/wisaitas/todo-web/internal/dtos/queries"
 )
 
 func validateCommonRequestJSONBody[T any](c *fiber.Ctx, req *T) error {

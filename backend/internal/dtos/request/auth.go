@@ -1,6 +1,8 @@
 package request
 
-import "github.com/wisaitas/todo-web/internal/models"
+import (
+	"github.com/wisaitas/todo-web/internal/models"
+)
 
 type LoginRequest struct {
 	Username string `json:"username" validate:"required,min=3,max=255"`

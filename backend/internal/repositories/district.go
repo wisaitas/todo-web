@@ -11,10 +11,12 @@ type DistrictRepository interface {
 
 type districtRepository struct {
 	BaseRepository[models.District]
+	db *gorm.DB
 }
 
-func NewDistrictRepository(db *gorm.DB) DistrictRepository {
+func NewDistrictRepository(db *gorm.DB, baseRepository BaseRepository[models.District]) DistrictRepository {
 	return &districtRepository{
-		BaseRepository: NewBaseRepository[models.District](db),
+		BaseRepository: baseRepository,
+		db:             db,
 	}
 }

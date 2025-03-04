@@ -52,7 +52,7 @@ func (r *provinceService) GetProvinces(query queries.PaginationQuery) (resp []re
 		return resp, http.StatusOK, nil
 	}
 
-	if err := r.provinceRepository.GetAll(&provinces, &query); err != nil {
+	if err := r.provinceRepository.GetAll(&provinces, &query, nil); err != nil {
 		return []response.GetProvincesResponse{}, http.StatusInternalServerError, err
 	}
 

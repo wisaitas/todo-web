@@ -3,16 +3,13 @@ package repositories
 import (
 	"github.com/wisaitas/todo-web/internal/dtos/queries"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
 type BaseRepository[T any] interface {
 	WithTx(tx *gorm.DB) BaseRepository[T]
-	GetAll(items *[]T, pagination *queries.PaginationQuery, relations ...string) error
-	GetBy(field string, value string, item *T) error
-	GetAllBy(field string, value string, items *[]T) error
-	GetById(id uuid.UUID, item *T) error
+	GetAll(items *[]T, pagination *queries.PaginationQuery, conditions interface{}, relations ...string) error
+	GetBy(conditions interface{}, item *T, relations ...string) error
 	Create(item *T) error
 	CreateMany(items *[]T) error
 	Updates(item *T) error
@@ -38,8 +35,12 @@ func (r *baseRepository[T]) WithTx(tx *gorm.DB) BaseRepository[T] {
 	}
 }
 
-func (r *baseRepository[T]) GetAll(items *[]T, pagination *queries.PaginationQuery, relations ...string) error {
+func (r *baseRepository[T]) GetAll(items *[]T, pagination *queries.PaginationQuery, conditions interface{}, relations ...string) error {
 	query := r.db
+
+	if conditions != nil {
+		query = query.Where(conditions)
+	}
 
 	if pagination.Page != nil && pagination.PageSize != nil {
 		offset := *pagination.Page * *pagination.PageSize
@@ -58,24 +59,14 @@ func (r *baseRepository[T]) GetAll(items *[]T, pagination *queries.PaginationQue
 	return query.Find(items).Error
 }
 
-func (r *baseRepository[T]) GetBy(field string, value string, item *T) error {
-	if value == "" {
-		return r.db.First(item).Error
+func (r *baseRepository[T]) GetBy(conditions interface{}, item *T, relations ...string) error {
+	query := r.db
+
+	for _, relation := range relations {
+		query = query.Preload(relation)
 	}
 
-	return r.db.Where(field+" = ?", value).First(item).Error
-}
-
-func (r *baseRepository[T]) GetAllBy(field string, value string, items *[]T) error {
-	if value == "" {
-		return r.db.Find(items).Error
-	}
-
-	return r.db.Where(field+" = ?", value).Find(items).Error
-}
-
-func (r *baseRepository[T]) GetById(id uuid.UUID, item *T) error {
-	return r.db.First(item, id).Error
+	return query.Where(conditions).First(item).Error
 }
 
 func (r *baseRepository[T]) Create(item *T) error {
