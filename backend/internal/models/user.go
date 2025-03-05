@@ -2,7 +2,6 @@ package models
 
 import (
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 type User struct {
@@ -15,9 +14,4 @@ type User struct {
 	Role      *Role     `gorm:"foreignKey:RoleID"`
 	Addresses []Address `gorm:"foreignKey:UserID"`
 	Todos     []Todo    `gorm:"foreignKey:UserID"`
-}
-
-func (u *User) BeforeCreate(tx *gorm.DB) error {
-
-	return nil
 }

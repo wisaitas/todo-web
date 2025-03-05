@@ -76,15 +76,18 @@ func autoSeed(db *gorm.DB) error {
 
 	for _, config := range seedConfigs {
 		if err := seedIfEmpty(tx, config.model, config.filename, config.destination, config.entityName); err != nil {
+			tx.Rollback()
 			return err
 		}
 	}
 
 	if err := seedUsers(tx); err != nil {
+		tx.Rollback()
 		return err
 	}
 
 	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
 		return fmt.Errorf("error committing transaction: %w", err)
 	}
 
@@ -101,19 +104,16 @@ func seedIfEmpty(tx *gorm.DB, model interface{}, filename string, destination in
 	if count == 0 {
 		file, err := os.Open(filename)
 		if err != nil {
-			tx.Rollback()
 			return fmt.Errorf("error opening %s file: %w", entityName, err)
 		}
 		defer file.Close()
 
 		byteData, err := io.ReadAll(file)
 		if err != nil {
-			tx.Rollback()
 			return fmt.Errorf("error reading %s file: %w", entityName, err)
 		}
 
 		if err := json.Unmarshal(byteData, destination); err != nil {
-			tx.Rollback()
 			return fmt.Errorf("error unmarshaling %s: %w", entityName, err)
 		}
 
@@ -128,7 +128,6 @@ func seedIfEmpty(tx *gorm.DB, model interface{}, filename string, destination in
 func seedUsers(tx *gorm.DB) error {
 	var count int64
 	if err := tx.Model(&models.User{}).Count(&count).Error; err != nil {
-		tx.Rollback()
 		return fmt.Errorf("error checking %s: %w", "users", err)
 	}
 
@@ -138,34 +137,29 @@ func seedUsers(tx *gorm.DB) error {
 
 	file, err := os.Open(ENV.USERS_FILE_PATH)
 	if err != nil {
-		tx.Rollback()
 		return fmt.Errorf("error opening %s file: %w", "users", err)
 	}
 	defer file.Close()
 
 	byteData, err := io.ReadAll(file)
 	if err != nil {
-		tx.Rollback()
 		return fmt.Errorf("error reading %s file: %w", "users", err)
 	}
 
 	var users []models.User
 
 	if err := json.Unmarshal(byteData, &users); err != nil {
-		tx.Rollback()
 		return fmt.Errorf("error unmarshaling %s: %w", "users", err)
 	}
 
 	for _, user := range users {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 		if err != nil {
-			tx.Rollback()
 			return fmt.Errorf("error hashing password: %w", err)
 		}
 
 		var role models.Role
 		if err := tx.First(&role, "name = ?", user.Role.Name).Error; err != nil {
-			tx.Rollback()
 			return fmt.Errorf("error finding role: %w", err)
 		}
 
@@ -173,7 +167,6 @@ func seedUsers(tx *gorm.DB) error {
 		user.Password = string(hashedPassword)
 
 		if err := tx.Create(&user).Error; err != nil {
-			tx.Rollback()
 			return fmt.Errorf("error seeding %s: %w", "users", err)
 		}
 	}

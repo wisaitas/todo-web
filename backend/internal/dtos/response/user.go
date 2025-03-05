@@ -23,7 +23,7 @@ type GetUsersResponse struct {
 	Username  string            `json:"username"`
 	Email     string            `json:"email"`
 	Addresses []AddressResponse `json:"addresses"`
-	Role      RoleResponse      `json:"role"`
+	Role      *RoleResponse     `json:"role"`
 }
 
 func (r *GetUsersResponse) ModelToResponse(users models.User) GetUsersResponse {
@@ -43,7 +43,10 @@ func (r *GetUsersResponse) ModelToResponse(users models.User) GetUsersResponse {
 	}
 
 	roleResponse := RoleResponse{}
-	r.Role = roleResponse.ModelToResponse(users.Role)
+	if users.Role != nil {
+		roleResponse = roleResponse.ModelToResponse(users.Role)
+		r.Role = &roleResponse
+	}
 
 	return *r
 }
